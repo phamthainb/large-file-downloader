@@ -37,6 +37,11 @@ export async function largeFileDownloader(
 ): Promise<OutLargeFileDownloader> {
   const start = Date.now();
   const { fileUrl } = data;
+
+  if (!isValidUrl(fileUrl)) {
+    throw Error("Invalid file URL");
+  }
+
   // default options
   let chunkSizeInBytes = data?.chunkSizeInBytes || 5 * 1024 * 1024; // 5MB
   let destinationFolder = data?.destinationFolder || join(__dirname, "temp"); // temp
@@ -216,6 +221,20 @@ function randomStr(len?: number): string {
   }
 
   return randomString;
+}
+
+function isValidUrl(url: string): boolean {
+  const urlRegex = new RegExp(
+    "^((https?|ftp):\\/\\/)?" + // Protocol (optional)
+      "((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|" + // Domain names
+      "((\\d{1,3}\\.){3}\\d{1,3}))" + // OR IP address
+      "(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*" + // Port and path
+      "(\\?[;&a-z\\d%_.~+=-]*)?" + // Query string
+      "(\\#[-a-z\\d_]*)?$",
+    "i"
+  );
+
+  return urlRegex.test(url);
 }
 
 export function getFileExt(contentTypeHeader: string): string {
