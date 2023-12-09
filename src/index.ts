@@ -28,7 +28,7 @@ export interface OutLargeFileDownloader {
 let isLog = true;
 const logger = (...optionalParams: any[]) => {
   if (isLog) {
-    console.log(optionalParams);
+    console.log(...optionalParams);
   }
 };
 
@@ -45,7 +45,8 @@ export async function largeFileDownloader(
   // default options
   let chunkSizeInBytes = data?.chunkSizeInBytes || 5 * 1024 * 1024; // 5MB
   let destinationFolder = data?.destinationFolder || join(__dirname, "temp"); // temp
-  let cleanTempFiles = data?.cleanTempFiles || true; // true
+  let cleanTempFiles =
+    data?.cleanTempFiles !== undefined ? data?.cleanTempFiles : true; // true
   let fileNameFromUrl = getFileNameFromUrl(fileUrl) || randomStr();
   let fileName = fileNameFromUrl;
 
@@ -55,13 +56,14 @@ export async function largeFileDownloader(
   }
 
   // check destinationFolder is exist
+  destinationFolder = `${destinationFolder}/${randomStr(6)}_${Date.now()}`;
   if (!fs.existsSync(destinationFolder)) {
     fs.mkdirSync(destinationFolder, { recursive: true });
   }
 
   try {
     const metadata = await getFileMetadata(fileUrl);
-
+    logger({ metadata });
     // check file name extension
     if (fileName?.split(".").length < 2) {
       fileName = `${fileName}.${getFileExt(metadata["content-type"])}`;
@@ -76,14 +78,17 @@ export async function largeFileDownloader(
     });
 
     const fileSize = metadata.size;
+    if (fileSize < 1) {
+      throw Error(
+        `Url is not has any file or It not support chunking download. Got fileSize: ${fileSize}bytes`
+      );
+    }
     const chunks = splitFileIntoChunks(fileSize, chunkSizeInBytes);
-    logger({ chunks });
+    // logger({ chunks });
     const downloadPromises: Promise<void>[] = [];
 
     chunks.forEach((chunk, index) => {
-      downloadPromises.push(
-        downloadChunk(fileUrl, chunk, destinationFolder, index + 1)
-      );
+      downloadPromises.push(downloadChunk(fileUrl, chunk, destinationFolder));
     });
 
     await Promise.all(downloadPromises);
@@ -156,11 +161,12 @@ function splitFileIntoChunks(
 async function downloadChunk(
   fileUrl: string,
   chunk: ChunkLargeFileDownloader,
-  destinationFolder: string,
-  index: number
+  destinationFolder: string
 ): Promise<void> {
   const { startByte, endByte } = chunk;
   const rangeHeader = `bytes=${startByte}-${endByte}`;
+
+  logger(`${chunk?.name} started`);
 
   return new Promise((resolve, reject) => {
     https

@@ -1,6 +1,6 @@
 {
   "name": "large-file-downloader",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "An npm package for downloading large files in chunks",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -10,7 +10,11 @@
     "dev": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/index.ts"
   },
   "author": "phamthainb",
-  "license": "MIT",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/phamthainb/large-file-downloader.git"
+  },
   "devDependencies": {
     "@types/mime-types": "^2.1.4",
     "@types/node": "^20.10.4",

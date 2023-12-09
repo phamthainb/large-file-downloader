@@ -44,17 +44,20 @@ const path_1 = require("path");
 let isLog = true;
 const logger = (...optionalParams) => {
     if (isLog) {
-        console.log(optionalParams);
+        console.log(...optionalParams);
     }
 };
 function largeFileDownloader(data) {
     return __awaiter(this, void 0, void 0, function* () {
         const start = Date.now();
         const { fileUrl } = data;
+        if (!isValidUrl(fileUrl)) {
+            throw Error("Invalid file URL");
+        }
         // default options
         let chunkSizeInBytes = (data === null || data === void 0 ? void 0 : data.chunkSizeInBytes) || 5 * 1024 * 1024; // 5MB
         let destinationFolder = (data === null || data === void 0 ? void 0 : data.destinationFolder) || (0, path_1.join)(__dirname, "temp"); // temp
-        let cleanTempFiles = (data === null || data === void 0 ? void 0 : data.cleanTempFiles) || true; // true
+        let cleanTempFiles = (data === null || data === void 0 ? void 0 : data.cleanTempFiles) !== undefined ? data === null || data === void 0 ? void 0 : data.cleanTempFiles : true; // true
         let fileNameFromUrl = getFileNameFromUrl(fileUrl) || randomStr();
         let fileName = fileNameFromUrl;
         // check logger enable
@@ -62,11 +65,13 @@ function largeFileDownloader(data) {
             isLog = data === null || data === void 0 ? void 0 : data.logger;
         }
         // check destinationFolder is exist
+        destinationFolder = `${destinationFolder}/${randomStr(6)}_${Date.now()}`;
         if (!fs.existsSync(destinationFolder)) {
             fs.mkdirSync(destinationFolder, { recursive: true });
         }
         try {
             const metadata = yield getFileMetadata(fileUrl);
+            logger({ metadata });
             // check file name extension
             if ((fileName === null || fileName === void 0 ? void 0 : fileName.split(".").length) < 2) {
                 fileName = `${fileName}.${getFileExt(metadata["content-type"])}`;
@@ -79,11 +84,14 @@ function largeFileDownloader(data) {
                 fileName,
             });
             const fileSize = metadata.size;
+            if (fileSize < 1) {
+                throw Error(`Url is not has any file or It not support chunking download. Got fileSize: ${fileSize}bytes`);
+            }
             const chunks = splitFileIntoChunks(fileSize, chunkSizeInBytes);
-            logger({ chunks });
+            // logger({ chunks });
             const downloadPromises = [];
             chunks.forEach((chunk, index) => {
-                downloadPromises.push(downloadChunk(fileUrl, chunk, destinationFolder, index + 1));
+                downloadPromises.push(downloadChunk(fileUrl, chunk, destinationFolder));
             });
             yield Promise.all(downloadPromises);
             logger("All chunks downloaded successfully!");
@@ -142,10 +150,11 @@ function splitFileIntoChunks(fileSize, chunkSizeInBytes) {
     }
     return chunks;
 }
-function downloadChunk(fileUrl, chunk, destinationFolder, index) {
+function downloadChunk(fileUrl, chunk, destinationFolder) {
     return __awaiter(this, void 0, void 0, function* () {
         const { startByte, endByte } = chunk;
         const rangeHeader = `bytes=${startByte}-${endByte}`;
+        logger(`${chunk === null || chunk === void 0 ? void 0 : chunk.name} started`);
         return new Promise((resolve, reject) => {
             https
                 .get(fileUrl, { headers: { Range: rangeHeader } }, (response) => {
@@ -191,6 +200,15 @@ function randomStr(len) {
         randomString += characters.charAt(Math.floor(Math.random() * charactersLength));
     }
     return randomString;
+}
+function isValidUrl(url) {
+    const urlRegex = new RegExp("^((https?|ftp):\\/\\/)?" + // Protocol (optional)
+        "((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|" + // Domain names
+        "((\\d{1,3}\\.){3}\\d{1,3}))" + // OR IP address
+        "(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*" + // Port and path
+        "(\\?[;&a-z\\d%_.~+=-]*)?" + // Query string
+        "(\\#[-a-z\\d_]*)?$", "i");
+    return urlRegex.test(url);
 }
 function getFileExt(contentTypeHeader) {
     const mimeType = contentTypeHeader.split(";")[0].trim(); // Extract MIME type (ignore any parameters)
