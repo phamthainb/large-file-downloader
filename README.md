@@ -4,7 +4,12 @@ Large File Downloader is a Node.js package that facilitates efficient downloadin
 
 ## Installation
 
-You can install the `large-file-downloader` package via npm: `bash npm install large-file-downloader`
+You can install the `large-file-downloader` package
+via npm:
+
+```bash
+npm install large-file-downloader
+```
 
 ## Usage
 
