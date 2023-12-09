@@ -1,0 +1,2 @@
+- auto clean chuck temp files
+- add more custom options
