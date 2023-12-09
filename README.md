@@ -63,6 +63,7 @@ The `largeFileDownloader` function orchestrates the download process using the f
 
 ## benchmark
 
+```js
 // 300MB = 300918835 bytes
 // chunkSizeInBytes: 5242880 bytes, time: 15979 ms, total: 300918835 bytes, avg: 18832144.376994807 bytes/s
 // chunkSizeInBytes: 10485760 bytes, time: 15698 ms, total: 300918835 bytes, avg: 19169246.7193273 bytes/s
@@ -74,6 +75,7 @@ The `largeFileDownloader` function orchestrates the download process using the f
 // chunkSizeInBytes: 41943040 bytes, time: 200261 ms, total: 300918835 bytes, avg: 1502633.2386235963 bytes/s
 // chunkSizeInBytes: 47185920 bytes, time: 225124 ms, total: 300918835 bytes, avg: 1336680.385032249 bytes/s
 // chunkSizeInBytes: 52428800 bytes, time: 250117 ms, total: 300918835 bytes, avg: 1203112.2834513448 bytes/s
+```
 
 ## Contributions
 
