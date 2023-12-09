@@ -61,7 +61,7 @@ The `largeFileDownloader` function orchestrates the download process using the f
   - `cleanTempFiles` (boolean): Option to clean up temporary files after combining (default: true).
   - `logger` (boolean): Option to enable or disable logging (default: true).
 
-## benchmark
+## Benchmark
 
 ```js
 // 300MB = 300918835 bytes
