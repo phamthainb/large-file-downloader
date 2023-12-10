@@ -35,12 +35,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getFileNameFromUrl = exports.getFileExt = exports.getFileMetadata = exports.largeFileDownloader = void 0;
+exports.formatBytes = exports.getFileNameFromUrl = exports.getFileExt = exports.getFileMetadata = exports.largeFileDownloader = void 0;
 const fs = __importStar(require("fs"));
-const https = __importStar(require("https"));
 const util_1 = require("util");
 const mime_types_1 = __importDefault(require("mime-types"));
 const path_1 = require("path");
+const url_1 = require("url");
+const axios_1 = __importDefault(require("axios"));
 let isLog = true;
 const logger = (...optionalParams) => {
     if (isLog) {
@@ -121,18 +122,39 @@ function largeFileDownloader(data) {
 exports.largeFileDownloader = largeFileDownloader;
 function getFileMetadata(fileUrl) {
     return __awaiter(this, void 0, void 0, function* () {
-        return new Promise((resolve, reject) => {
-            https
-                .get(fileUrl, (response) => {
-                resolve(Object.assign(Object.assign({}, response.headers), { size: parseInt(response.headers["content-length"] || "0", 10) }));
-            })
-                .on("error", (error) => {
-                reject(error);
-            });
-        });
+        try {
+            const response = yield axios_1.default.head(fileUrl);
+            const contentLength = response.headers["content-length"];
+            return Object.assign(Object.assign({}, response.headers), { size: parseInt(contentLength || "0", 10) });
+        }
+        catch (error) {
+            throw error;
+        }
     });
 }
 exports.getFileMetadata = getFileMetadata;
+function downloadChunk(fileUrl, chunk, destinationFolder) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const { startByte, endByte } = chunk;
+        const rangeHeader = `bytes=${startByte}-${endByte}`;
+        logger(`${chunk === null || chunk === void 0 ? void 0 : chunk.name} started`);
+        const writer = fs.createWriteStream(`${destinationFolder}/${chunk === null || chunk === void 0 ? void 0 : chunk.name}`);
+        try {
+            const response = yield axios_1.default.get(fileUrl, {
+                headers: { Range: rangeHeader },
+                responseType: "stream",
+            });
+            response.data.pipe(writer);
+            return new Promise((resolve, reject) => {
+                writer.on("finish", resolve);
+                writer.on("error", reject);
+            });
+        }
+        catch (error) {
+            throw error;
+        }
+    });
+}
 function splitFileIntoChunks(fileSize, chunkSizeInBytes) {
     const chunks = [];
     let startByte = 0;
@@ -149,29 +171,6 @@ function splitFileIntoChunks(fileSize, chunkSizeInBytes) {
         count += 1;
     }
     return chunks;
-}
-function downloadChunk(fileUrl, chunk, destinationFolder) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const { startByte, endByte } = chunk;
-        const rangeHeader = `bytes=${startByte}-${endByte}`;
-        logger(`${chunk === null || chunk === void 0 ? void 0 : chunk.name} started`);
-        return new Promise((resolve, reject) => {
-            https
-                .get(fileUrl, { headers: { Range: rangeHeader } }, (response) => {
-                const file = fs.createWriteStream(`${destinationFolder}/${chunk === null || chunk === void 0 ? void 0 : chunk.name}`);
-                response.pipe(file);
-                file.on("finish", () => {
-                    file.close(() => {
-                        logger(`${chunk === null || chunk === void 0 ? void 0 : chunk.name} downloaded`);
-                        resolve();
-                    });
-                });
-            })
-                .on("error", (error) => {
-                reject(error);
-            });
-        });
-    });
 }
 function padIndex(index, length) {
     return index.toString().padStart(length, "0");
@@ -202,13 +201,14 @@ function randomStr(len) {
     return randomString;
 }
 function isValidUrl(url) {
-    const urlRegex = new RegExp("^((https?|ftp):\\/\\/)?" + // Protocol (optional)
-        "((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|" + // Domain names
-        "((\\d{1,3}\\.){3}\\d{1,3}))" + // OR IP address
-        "(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*" + // Port and path
-        "(\\?[;&a-z\\d%_.~+=-]*)?" + // Query string
-        "(\\#[-a-z\\d_]*)?$", "i");
-    return urlRegex.test(url);
+    try {
+        (0, url_1.parse)(url);
+        return true;
+    }
+    catch (error) {
+        logger(error);
+        return false;
+    }
 }
 function getFileExt(contentTypeHeader) {
     const mimeType = contentTypeHeader.split(";")[0].trim(); // Extract MIME type (ignore any parameters)
@@ -236,3 +236,14 @@ function getFileNameFromUrl(url) {
     return "";
 }
 exports.getFileNameFromUrl = getFileNameFromUrl;
+// formatBytes
+const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB"];
+const k = 1024;
+function formatBytes(bytes, decimals = 2) {
+    if (bytes < 1)
+        return "0 Bytes";
+    const dm = decimals < 0 ? 0 : decimals;
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
+}
+exports.formatBytes = formatBytes;

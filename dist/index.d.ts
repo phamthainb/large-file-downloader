@@ -23,3 +23,4 @@ export declare function getFileMetadata(fileUrl: string): Promise<{
 }>;
 export declare function getFileExt(contentTypeHeader: string): string;
 export declare function getFileNameFromUrl(url: string): string;
+export declare function formatBytes(bytes: number, decimals?: number): string;
