@@ -1,6 +1,6 @@
 {
   "name": "large-file-downloader",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "An npm package for downloading large files in chunks",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -22,5 +22,17 @@
   },
   "dependencies": {
     "mime-types": "^2.1.35"
-  }
+  },
+  "keywords": [
+    "large",
+    "file",
+    "downloader",
+    "streaming",
+    "big file",
+    "download manager",
+    "node.js download",
+    "bulk download",
+    "efficient download",
+    "file transfer"
+  ]
 }
